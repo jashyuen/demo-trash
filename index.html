@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pokemon Restock Schedule</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="leaflet-locatecontrol-gh-pages\dist\L.Control.Locate.mapbox.css">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .tab-divider {
+      margin: 0 10px;
+      color: #aaa;
+      font-weight: bold;
+      align-self: center;
+    }
+
+    .tab-button[data-map="map-California"] {
+      background-color: #eee;
+      border: 1px solid #ccc;
+      color: #333;
+    }
+
+    .tab-button.active[data-map="map-California"] {
+      background-color: #ccc;
+    }
+  </style>
+  <style>
+  #intro-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(8px);
+    background-color: rgba(255, 255, 255, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .intro-content {
+    text-align: center;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    font-family: "Montserrat", sans-serif;
+  }
+
+  .intro-content h2 {
+    font-size: 1.8em;
+    margin-bottom: 0.5em;
+  }
+
+  .intro-content p {
+    margin: 0.5em 0;
+    color: #333;
+    font-size: 1em;
+  }
+
+  #enter-map {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 1em;
+    font-weight: bold;
+    background: #444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  #enter-map:hover {
+    background: #222;
+  }
+  </style>
+</head>
+<body>
+<div id="intro-overlay">
+  <div class="intro-content">
+    <h2>Welcome</h2>
+    <p>This map shows the weekly routes of vending machine restockers in the Bay Area.</p>
+    <p>It also shows the location of every vending machine in California.</p>
+    <button id="enter-map">Enter Map</button>
+  </div>
+</div>
+
+
+<div class="header">
+  <div class="logo-title">
+    <img src="profile.png" alt="Logo" class="logo-img">
+    <div class="title-block">
+      <div class="title">Bay Area PokéScalpers</div>
+      <div class="subtitle">By Jason Yuen</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab-buttons">
+      <button class="tab-button" data-map="map-Monday">MONDAY</button>
+      <button class="tab-button" data-map="map-Tuesday">TUESDAY</button>
+      <button class="tab-button" data-map="map-Wednesday">WEDNESDAY</button>
+      <button class="tab-button" data-map="map-Thursday">THURSDAY</button>
+      <button class="tab-button" data-map="map-Friday">FRIDAY</button>
+      <span class="tab-divider">|</span>
+      <button class="tab-button active" data-map="map-California">CALIFORNIA</button>
+    </div>
+    <select class="tab-dropdown">
+      <option value="map-Monday">MONDAY</option>
+      <option value="map-Tuesday">TUESDAY</option>
+      <option value="map-Wednesday">WEDNESDAY</option>
+      <option value="map-Thursday">THURSDAY</option>
+      <option value="map-Friday">FRIDAY</option>
+      <option value="map-California" selected>CALIFORNIA</option>
+    </select>
+  </div>
+</div>
+
+<div id="map-Monday" class="map-container"></div>
+<div id="map-Tuesday" class="map-container"></div>
+<div id="map-Wednesday" class="map-container"></div>
+<div id="map-Thursday" class="map-container"></div>
+<div id="map-Friday" class="map-container"></div>
+<div id="map-California" class="map-container active"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script src="leaflet-locatecontrol-gh-pages\dist\L.Control.Locate.min.js"></script>
+<script src="californiaData.js"></script>
+<script src="script.js"></script>
+
+<script>
+  const californiaMap = L.map('map-California');
+  L.control.locate().addTo(californiaMap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://carto.com/">CARTO</a> | &copy; OpenStreetMap contributors',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(californiaMap);
+
+  const californiaBounds = L.latLngBounds([32.5, -123.0], [39.0, -117.0]);
+  californiaData.forEach(loc => {
+    const lat = loc[0];
+    const lng = loc[1];
+    const address = loc[2];
+    const performer = loc[3];
+    const encodedAddress = encodeURIComponent(address);
+    const googleMapsLink = `https://www.google.com/maps?q=${encodedAddress}`;
+    const appleMapsLink = `https://maps.apple.com/?address=${encodedAddress}`;
+
+    const popupContent = `
+      <strong>${performer}</strong><br>
+      ${address}<br>
+      <a href="${googleMapsLink}" target="_blank" rel="noopener noreferrer">Google Maps</a><br>
+      <a href="${appleMapsLink}" target="_blank" rel="noopener noreferrer">Apple Maps</a>
+    `;
+
+    L.marker([lat, lng]).addTo(californiaMap).bindPopup(popupContent);
+  });
+
+  // Ensure California map displays correctly on initial load
+window.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    californiaMap.invalidateSize();
+    californiaMap.fitBounds(californiaBounds);
+  }, 300);
+});
+
+// Handle tab switch sizing
+  const californiaButton = document.querySelector('[data-map="map-California"]');
+  californiaButton.addEventListener('click', () => {
+    setTimeout(() => {
+      californiaMap.invalidateSize();
+      californiaMap.fitBounds(californiaBounds);
+    }, 200);
+  });
+
+  const californiaDropdown = document.querySelector('.tab-dropdown');
+  if (californiaDropdown) {
+    californiaDropdown.addEventListener('change', (e) => {
+      if (e.target.value === "map-California") {
+        setTimeout(() => {
+          californiaMap.invalidateSize();
+          californiaMap.fitBounds(californiaBounds);
+        }, 200);
+      }
+    });
+  }
+</script>
+
+<script>
+  document.getElementById("enter-map").addEventListener("click", () => {
+    document.getElementById("intro-overlay").style.display = "none";
+  });
+</script>
+</body>
+</html>
